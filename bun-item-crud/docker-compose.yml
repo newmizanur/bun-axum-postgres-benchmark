@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: items
+    ports:
+      - "5432:5432"
+    volumes:
+      - bun_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d items"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    # Deliberately no cpu/mem limits here: Postgres runs unconstrained so
+    # the app container's 1-cpu cap is the only thing being benchmarked.
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/items
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Hard-capped to exactly 1 CPU core. This "cpus:" top-level key is
+    # applied directly by `docker compose up` (no swarm mode and no
+    # --compatibility flag required) — unlike deploy.resources.limits,
+    # which Compose silently ignores outside swarm unless you pass
+    # --compatibility.
+    cpus: "1.0"
+    # mem_limit: "512m"   # uncomment to also cap memory
+
+volumes:
+  bun_pgdata:

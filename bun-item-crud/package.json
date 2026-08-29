@@ -1,0 +1,13 @@
+{
+  "name": "bun-item-crud",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run index.ts",
+    "build": "bun build ./index.ts --compile --outfile item-crud"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

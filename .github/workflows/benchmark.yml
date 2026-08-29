@@ -1,0 +1,81 @@
+name: Benchmark
+
+# Runs the Axum vs Bun load test and commits the results back to the repo
+# as results.md.
+#
+# Triggers:
+#   - workflow_dispatch: run on demand from the Actions tab
+#   - schedule:          weekly, so results.md stays fresh even with no
+#                         code changes (runner hardware/kernel drifts, and
+#                         it's a useful sanity check that things still run)
+#   - push to main:       only when something that affects the benchmark
+#                         actually changed
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 3 * * 1" # 03:00 UTC every Monday
+  push:
+    branches: [main]
+    paths:
+      - "axum-item-crud/**"
+      - "bun-item-crud/**"
+      - "scripts/**"
+      - ".github/workflows/benchmark.yml"
+
+# Needed so the final step can push the updated results.md back to main.
+permissions:
+  contents: write
+
+# Only one benchmark run at a time, and don't cancel a run that's already
+# mid-benchmark just because another trigger fired.
+concurrency:
+  group: benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+          k6 version
+
+      - name: Run benchmark
+        run: |
+          chmod +x scripts/run-benchmark.sh
+          scripts/run-benchmark.sh
+
+      - name: Generate results.md
+        run: |
+          python3 scripts/generate_results_md.py \
+            --axum benchmark-artifacts/axum-summary.json \
+            --bun benchmark-artifacts/bun-summary.json \
+            --output results.md \
+            --commit "${{ github.sha }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Upload raw k6 output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results-${{ github.run_number }}
+          path: benchmark-artifacts/
+          retention-days: 90
+
+      - name: Commit results.md
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update benchmark results"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+          file_pattern: results.md

@@ -1,0 +1,122 @@
+### Axum Item CRUD API — request collection
+### Works with the "REST Client" extension in VS Code, JetBrains' built-in
+### HTTP client, or any tool that understands the .http format.
+###
+### Run the server first: `cargo run` (needs Postgres reachable at
+### DATABASE_URL — see docker-compose.yml) or `docker compose up`
+### (listens on http://localhost:3000)
+
+@baseUrl = http://localhost:3000
+
+### -----------------------------------------------------------------
+### 1. List all items (should be empty on a fresh database)
+### -----------------------------------------------------------------
+GET {{baseUrl}}/items
+
+
+### -----------------------------------------------------------------
+### 2. Create an item
+### -----------------------------------------------------------------
+POST {{baseUrl}}/items
+Content-Type: application/json
+
+{
+  "name": "Widget",
+  "description": "A small widget",
+  "quantity": 10
+}
+
+
+### -----------------------------------------------------------------
+### 3. Create a second item (no description, to check the optional field)
+### -----------------------------------------------------------------
+POST {{baseUrl}}/items
+Content-Type: application/json
+
+{
+  "name": "Gadget",
+  "quantity": 3
+}
+
+
+### -----------------------------------------------------------------
+### 4. List all items again — should show both items now
+### -----------------------------------------------------------------
+GET {{baseUrl}}/items
+
+
+### -----------------------------------------------------------------
+### 5. Get a single item by id
+### Change the id below to match one returned from step 2 or 3.
+### -----------------------------------------------------------------
+GET {{baseUrl}}/items/1
+
+
+### -----------------------------------------------------------------
+### 6. Get an item that doesn't exist — should return 404
+### -----------------------------------------------------------------
+GET {{baseUrl}}/items/9999
+
+
+### -----------------------------------------------------------------
+### 7. Partially update an item — only quantity changes
+### -----------------------------------------------------------------
+PUT {{baseUrl}}/items/1
+Content-Type: application/json
+
+{
+  "quantity": 25
+}
+
+
+### -----------------------------------------------------------------
+### 8. Fully update an item — all fields provided
+### -----------------------------------------------------------------
+PUT {{baseUrl}}/items/1
+Content-Type: application/json
+
+{
+  "name": "Widget Pro",
+  "description": "An upgraded widget",
+  "quantity": 50
+}
+
+
+### -----------------------------------------------------------------
+### 9. Update an item that doesn't exist — should return 404
+### -----------------------------------------------------------------
+PUT {{baseUrl}}/items/9999
+Content-Type: application/json
+
+{
+  "quantity": 1
+}
+
+
+### -----------------------------------------------------------------
+### 10. Delete an item — should return 204 No Content
+### -----------------------------------------------------------------
+DELETE {{baseUrl}}/items/2
+
+
+### -----------------------------------------------------------------
+### 11. Confirm it's gone — should return 404
+### -----------------------------------------------------------------
+GET {{baseUrl}}/items/2
+
+
+### -----------------------------------------------------------------
+### 12. Delete an item that doesn't exist — should return 404
+### -----------------------------------------------------------------
+DELETE {{baseUrl}}/items/9999
+
+
+### -----------------------------------------------------------------
+### 13. Malformed body — missing required "name" field, should 400
+### -----------------------------------------------------------------
+POST {{baseUrl}}/items
+Content-Type: application/json
+
+{
+  "quantity": 5
+}
