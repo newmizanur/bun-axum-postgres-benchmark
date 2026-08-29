@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { check } from 'k6';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
 
 // ---------------------------------------------------------------
 // Config
@@ -101,4 +102,20 @@ export default function () {
         'delete: status 204': (r) => r.status === 204,
         'delete: response time < 200ms': (r) => r.timings.duration < 200,
     });
+}
+
+// ---------------------------------------------------------------
+// Writes summary.json using k6's documented handleSummary() data
+// object (metrics keyed as data.metrics.<name>.values.<stat>), rather
+// than relying on the `k6 run --summary-export` flag, whose on-disk
+// JSON shape is flatter/undocumented and has changed across k6
+// versions. This is what scripts/generate_results_md.py parses.
+// Also re-prints the normal human-readable summary to stdout, since
+// defining handleSummary() otherwise suppresses it.
+// ---------------------------------------------------------------
+export function handleSummary(data) {
+    return {
+        stdout: textSummary(data, { indent: ' ', enableColors: true }) + '\n',
+        'summary.json': JSON.stringify(data),
+    };
 }

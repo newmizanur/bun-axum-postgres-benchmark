@@ -71,9 +71,13 @@ run_one() {
     wait_for_app "http://localhost:3000/items"
 
     log "running k6 load test against $label"
-    k6 run \
-        --summary-export "$ARTIFACT_DIR/${label}-summary.json" \
-        load-test.js | tee "$ARTIFACT_DIR/${label}-stdout.txt"
+    # load-test.js's handleSummary() writes ./summary.json (a stable,
+    # documented shape) and echoes the normal human summary to stdout —
+    # deliberately not using `k6 run --summary-export`, whose on-disk
+    # JSON shape is flatter/undocumented and isn't what
+    # generate_results_md.py expects.
+    k6 run load-test.js | tee "$ARTIFACT_DIR/${label}-stdout.txt"
+    mv summary.json "$ARTIFACT_DIR/${label}-summary.json"
 
     docker compose down -v --remove-orphans
     trap - EXIT
