@@ -44,8 +44,12 @@ that API on its own.
    how many cores each runtime happened to get.
 2. [k6](https://k6.io) runs the same [`load-test.js`](axum-item-crud/load-test.js)
    script (identical in both project directories) against whichever
-   service is currently up: 50 virtual users for 30 seconds, each
-   iteration doing a full list → create → get → update → delete cycle.
+   service is currently up: a ramping-VUs scenario that climbs from 0 up
+   to 500 virtual users over about two minutes, so the results reflect
+   behavior across a range of concurrency rather than one fixed load
+   level — not just whether the app is fast when idle, but where it
+   starts to strain. Each iteration does a full list → create → get →
+   update → delete cycle.
 3. The two services are benchmarked **sequentially**, never at the same
    time — they share host ports (3000, 5432), and running one at a time
    also means each gets the runner to itself.

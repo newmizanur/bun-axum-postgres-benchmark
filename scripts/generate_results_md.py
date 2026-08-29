@@ -41,8 +41,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--output", required=True, type=Path, help="path to write results.md")
     p.add_argument("--commit", default="unknown", help="git commit SHA this run was built from")
     p.add_argument("--run-url", default="", help="URL of the CI run that produced this data")
-    p.add_argument("--vus", default="50", help="virtual users used in the k6 test")
-    p.add_argument("--duration", default="30s", help="duration of the k6 test")
+    p.add_argument("--vus", default="50", help="unused, kept for backwards compatibility")
+    p.add_argument("--duration", default="30s", help="unused, kept for backwards compatibility")
     return p.parse_args()
 
 
@@ -154,9 +154,13 @@ def main() -> None:
     lines.append("## Methodology")
     lines.append("")
     lines.append(
-        f"- Load generator: [k6](https://k6.io), {args.vus} virtual users for "
-        f"{args.duration}, one full CRUD cycle (list → create → get → update → "
-        "delete) per iteration."
+        "- Load generator: [k6](https://k6.io), a ramping-VUs scenario that "
+        "climbs 0 → 50 → 150 → 300 → 500 virtual users over ~90s and then "
+        "holds at 500 for 30s, so the numbers below reflect behavior across a "
+        "range of concurrency, not just one fixed load level. Each iteration "
+        "runs one full CRUD cycle (list → create → get → update → delete). "
+        "See [`axum-item-crud/load-test.js`](axum-item-crud/load-test.js) "
+        "for the exact stages."
     )
     lines.append(
         "- Both services run in Docker via their own `docker-compose.yml`, "

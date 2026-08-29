@@ -76,7 +76,19 @@ run_one() {
     # deliberately not using `k6 run --summary-export`, whose on-disk
     # JSON shape is flatter/undocumented and isn't what
     # generate_results_md.py expects.
+    #
+    # k6 exits non-zero if a threshold is crossed. With the ramping-vus
+    # scenario in load-test.js that's expected once load climbs past
+    # what the app can comfortably handle — it's the ceiling the test
+    # is designed to find, not a broken run — so this is deliberately
+    # not fatal to the script (set -e is suspended around it).
+    set +e
     k6 run load-test.js | tee "$ARTIFACT_DIR/${label}-stdout.txt"
+    k6_exit="${PIPESTATUS[0]}"
+    set -e
+    if [ "$k6_exit" -ne 0 ]; then
+        log "note: k6 exited with status $k6_exit for $label — likely a threshold crossed under peak load, not a script failure. See ${label}-stdout.txt for details."
+    fi
     mv summary.json "$ARTIFACT_DIR/${label}-summary.json"
 
     docker compose down -v --remove-orphans

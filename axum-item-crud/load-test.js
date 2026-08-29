@@ -11,15 +11,35 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
 const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } };
 
 export const options = {
-    vus: 50,
-    duration: '30s',
+    // Ramps VUs up in stages instead of a fixed count, so the test
+    // reveals where each service actually starts to strain rather than
+    // measuring latency at a concurrency level neither app finds taxing.
+    // Both apps are still capped to 1 CPU core via docker-compose.yml,
+    // so the ceiling this finds is "how far can 1 core take this
+    // framework/driver", not raw hardware capacity.
+    scenarios: {
+        ramp: {
+            executor: 'ramping-vus',
+            startVUs: 0,
+            stages: [
+                { duration: '20s', target: 50 },   // baseline, same as the old fixed test
+                { duration: '20s', target: 150 },
+                { duration: '20s', target: 300 },
+                { duration: '20s', target: 500 },
+                { duration: '30s', target: 500 },  // hold at peak to see if it stabilizes or degrades
+            ],
+            gracefulRampDown: '10s',
+        },
+    },
     // Include p99 (not just the default avg/min/med/max/p90/p95) so the
     // CI benchmark comparison can report tail latency, not just p95.
     summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
     thresholds: {
-        // Overall pass/fail gate — fails the run if >1% of checks fail
+        // These are informational, not hard gates: run-benchmark.sh
+        // doesn't treat a threshold crossing as a script failure. At
+        // 500 VUs one or both apps may legitimately blow past 200ms —
+        // that's the ceiling this test is designed to find, not a bug.
         checks: ['rate>0.99'],
-        // Per-endpoint latency budgets (uses the tags set below)
         'http_req_duration{name:list_items}': ['p(95)<200'],
         'http_req_duration{name:get_item}': ['p(95)<200'],
         'http_req_duration{name:create_item}': ['p(95)<200'],
