@@ -44,7 +44,9 @@ enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
-            AppError::NotFound => (StatusCode::NOT_FOUND, "item not found".to_string()).into_response(),
+            AppError::NotFound => {
+                (StatusCode::NOT_FOUND, "item not found".to_string()).into_response()
+            }
             AppError::Internal(err) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response()
             }
@@ -65,11 +67,10 @@ type AppResult<T> = Result<T, AppError>;
 /// GET /items
 /// Returns every item in the table.
 async fn list_items(State(pool): State<PgPool>) -> AppResult<Json<Vec<Item>>> {
-    let items = sqlx::query_as::<_, Item>(
-        "SELECT id, name, description, quantity FROM items ORDER BY id",
-    )
-    .fetch_all(&pool)
-    .await?;
+    let items =
+        sqlx::query_as::<_, Item>("SELECT id, name, description, quantity FROM items ORDER BY id")
+            .fetch_all(&pool)
+            .await?;
 
     Ok(Json(items))
 }
@@ -169,7 +170,7 @@ async fn main() {
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/items".to_string());
 
     let pool = PgPoolOptions::new()
-        .max_connections(10)
+        .max_connections(20)
         .connect(&database_url)
         .await
         .expect("failed to connect to postgres database");

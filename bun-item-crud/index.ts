@@ -41,8 +41,10 @@ interface UpdateItemRequest {
 // 1.2, expanded in 1.3) and was still maturing as recently as v1.2.19.
 
 const sql = new SQL({
-  url: process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/items",
-  max: 10,
+  url:
+    process.env.DATABASE_URL ??
+    "postgres://postgres:postgres@localhost:5432/items",
+  max: 20,
 });
 
 // Postgres `INTEGER`/`SERIAL` (32-bit) rather than `BIGINT`/`BIGSERIAL`
@@ -147,7 +149,8 @@ async function updateItem(idRaw: string, req: Request): Promise<Response> {
   if (existingRows.length === 0) return errorText(404, "item not found");
   const existing = existingRows[0]!;
 
-  const name = body.name !== undefined && body.name !== null ? body.name : existing.name;
+  const name =
+    body.name !== undefined && body.name !== null ? body.name : existing.name;
   const description =
     body.description !== undefined ? body.description : existing.description;
   const quantity =
